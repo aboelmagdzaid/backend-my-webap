@@ -78,13 +78,13 @@ def setup_logging() -> None:
                 "propagate": False
             },
             "uvicorn.access": {
-                "handlers": ["console", "file"],
-                "level": "INFO",
+                "handlers": ["console"],
+                "level": "WARNING",
                 "propagate": False
             },
-            "sqlalchemy": {
-                "handlers": ["console", "file"],
-                "level": "WARNING",
+            "sqlalchemy.engine": {
+                "handlers": ["file"],
+                "level": "ERROR",
                 "propagate": False
             }
         },
