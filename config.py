@@ -37,7 +37,11 @@ class Settings(BaseSettings):
     database_pool_recycle: int = 3600
 
     # CORS
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    cors_origins: List[str] = [
+        "http://localhost:3000", 
+        "http://localhost:8000",
+        "https://frontend-my-webapp.vercel.app"  # Add your Vercel frontend URL
+    ]
     cors_allow_credentials: bool = True
     cors_allow_methods: List[str] = ["*"]
     cors_allow_headers: List[str] = ["*"]
