@@ -45,8 +45,8 @@ class Settings(BaseSettings):
         "https://erp.aboelmagdzaid.online"
     ]
     cors_allow_credentials: bool = True
-    cors_allow_methods: List[str] = ["*"]
-    cors_allow_headers: List[str] = ["*"]
+    cors_allow_methods: Union[List[str], str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    cors_allow_headers: Union[List[str], str] = ["*"]
 
     # Security
     bcrypt_rounds: int = 12
