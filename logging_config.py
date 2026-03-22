@@ -63,13 +63,13 @@ def setup_logging() -> None:
         },
         "loggers": {
             "app": {
-                "handlers": ["console", "file", "error_file"],
-                "level": settings.log_level.upper(),
+                "handlers": ["error_file"] if settings.debug is False else ["console", "file", "error_file"],
+                "level": "WARNING" if settings.debug is False else settings.log_level.upper(),
                 "propagate": False
             },
             "uvicorn": {
-                "handlers": ["console", "file"],
-                "level": "INFO",
+                "handlers": ["console"],
+                "level": "WARNING",
                 "propagate": False
             },
             "uvicorn.error": {
@@ -89,8 +89,8 @@ def setup_logging() -> None:
             }
         },
         "root": {
-            "handlers": ["console", "file", "error_file"],
-            "level": settings.log_level.upper()
+            "handlers": ["console"] if settings.debug else ["error_file"],
+            "level": "ERROR" if settings.debug is False else settings.log_level.upper()
         }
     }
 
