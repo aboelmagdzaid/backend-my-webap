@@ -4,7 +4,8 @@ Handles environment variables, database settings, and application configuration
 """
 
 import os
-from typing import List, Optional
+import json
+from typing import List, Optional, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
@@ -25,7 +26,7 @@ class Settings(BaseSettings):
 
     # Server
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 8000  # Railway overrides with PORT env var
     log_level: str = "info"
     workers: int = 1
 
@@ -37,10 +38,11 @@ class Settings(BaseSettings):
     database_pool_recycle: int = 3600
 
     # CORS
-    cors_origins: List[str] = [
-        "http://localhost:3000", 
+    cors_origins: Union[List[str], str] = [
+        "http://localhost:3000",
         "http://localhost:8000",
-        "https://frontend-my-webapp.vercel.app"  # Add your Vercel frontend URL
+        "https://frontend-my-webapp.vercel.app",
+        "https://erp.aboelmagdzaid.online"
     ]
     cors_allow_credentials: bool = True
     cors_allow_methods: List[str] = ["*"]
@@ -69,9 +71,22 @@ class Settings(BaseSettings):
     @field_validator("cors_origins", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v):
-        """Parse CORS origins from environment variable"""
+        """Parse CORS origins from environment variable."""
         if isinstance(v, str):
-            return [i.strip() for i in v.split(",")]
+            input_value = v.strip()
+
+            # Attempt JSON list support first
+            if input_value.startswith("[") and input_value.endswith("]"):
+                try:
+                    decoded = json.loads(input_value)
+                    if isinstance(decoded, list):
+                        return [str(item).strip() for item in decoded if str(item).strip()]
+                except json.JSONDecodeError:
+                    pass
+
+            # Fallback to comma-separated list
+            return [i.strip() for i in input_value.split(",") if i.strip()]
+
         return v
 
     @field_validator("database_url", mode="before")
