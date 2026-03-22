@@ -99,6 +99,46 @@ class Settings(BaseSettings):
         # Default to SQLite for development
         return "sqlite:///./accounting.db"
 
+    @field_validator("cors_allow_methods", mode="before")
+    @classmethod
+    def assemble_cors_allow_methods(cls, v):
+        """Parse CORS allow methods from env var"""
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+            # JSON list support
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    decoded = json.loads(v)
+                    if isinstance(decoded, list):
+                        return [str(item).strip().upper() for item in decoded if str(item).strip()]
+                except json.JSONDecodeError:
+                    pass
+            return [item.strip().upper() for item in v.split(",") if item.strip()]
+        return v
+
+    @field_validator("cors_allow_headers", mode="before")
+    @classmethod
+    def assemble_cors_allow_headers(cls, v):
+        """Parse CORS allow headers from env var"""
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return ["*"]
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    decoded = json.loads(v)
+                    if isinstance(decoded, list):
+                        return [str(item).strip() for item in decoded if str(item).strip()]
+                except json.JSONDecodeError:
+                    pass
+            # Allow star wildcard as exact value
+            if v == "*":
+                return ["*"]
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
+
     def get_database_url_async(self) -> str:
         """Get database URL for async operations"""
         if self.database_url.startswith("postgresql"):
