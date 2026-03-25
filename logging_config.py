@@ -6,7 +6,6 @@ Structured logging with different levels and handlers
 import logging
 import logging.config
 import sys
-from pathlib import Path
 from typing import Dict, Any
 
 from config import settings
@@ -15,11 +14,7 @@ from config import settings
 def setup_logging() -> None:
     """Setup logging configuration"""
 
-    # Create logs directory if it doesn't exist
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
-
-    # Logging configuration
+    # Logging configuration — console only (Railway captures stdout)
     logging_config: Dict[str, Any] = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -43,28 +38,12 @@ def setup_logging() -> None:
                 "formatter": "default",
                 "level": "INFO",
                 "stream": sys.stdout
-            },
-            "file": {
-                "class": "logging.handlers.RotatingFileHandler",
-                "formatter": "detailed",
-                "filename": "logs/app.log",
-                "maxBytes": 10 * 1024 * 1024,  # 10MB
-                "backupCount": 5,
-                "level": "INFO"
-            },
-            "error_file": {
-                "class": "logging.handlers.RotatingFileHandler",
-                "formatter": "detailed",
-                "filename": "logs/error.log",
-                "maxBytes": 10 * 1024 * 1024,  # 10MB
-                "backupCount": 5,
-                "level": "ERROR"
             }
         },
         "loggers": {
             "app": {
-                "handlers": ["error_file"] if settings.debug is False else ["console", "file", "error_file"],
-                "level": "WARNING" if settings.debug is False else settings.log_level.upper(),
+                "handlers": ["console"],
+                "level": settings.log_level.upper() if settings.debug else "WARNING",
                 "propagate": False
             },
             "uvicorn": {
@@ -73,7 +52,7 @@ def setup_logging() -> None:
                 "propagate": False
             },
             "uvicorn.error": {
-                "handlers": ["console", "error_file"],
+                "handlers": ["console"],
                 "level": "ERROR",
                 "propagate": False
             },
@@ -83,14 +62,14 @@ def setup_logging() -> None:
                 "propagate": False
             },
             "sqlalchemy.engine": {
-                "handlers": ["file"],
+                "handlers": ["console"],
                 "level": "ERROR",
                 "propagate": False
             }
         },
         "root": {
-            "handlers": ["console"] if settings.debug else ["error_file"],
-            "level": "ERROR" if settings.debug is False else settings.log_level.upper()
+            "handlers": ["console"],
+            "level": settings.log_level.upper() if settings.debug else "ERROR"
         }
     }
 
