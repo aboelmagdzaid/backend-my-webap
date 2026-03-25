@@ -60,7 +60,12 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except ValueError:
+        # If hash is invalid, assume it's plain text (temporary fix)
+        logger.warning(f"Invalid hash detected, comparing as plain text")
+        return plain_password == hashed_password
 
 # User utilities
 def create_user_token_data(user_id: int, user_number: str, role: str) -> dict:
