@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from slowapi.errors import RateLimitExceeded
 import logging
 from typing import Optional
@@ -19,10 +20,9 @@ from models import User, UserRole
 from crud import UserCRUD, ContactCRUD, AuditLogCRUD
 from security import (
     create_access_token,
-    verify_token,
     create_user_token_data,
-    get_current_user_from_token
 )
+from platform_api import router as platform_router
 from middleware import (
     limiter,
     rate_limit_exceeded_handler,
@@ -47,6 +47,23 @@ async def lifespan(app: FastAPI):
     # Initialize database
     try:
         init_database()
+        db = next(get_db())
+        try:
+            defaults = [
+                ("CL-2401", "Delta Supplies", UserRole.CLIENT, None, "client@example.com"),
+                ("US-3021", "Ahmed Sameh", UserRole.WORKER, "123456", "worker@example.com"),
+                ("AD-9001", "System Admin", UserRole.ADMIN, "123456", "admin@example.com"),
+                ("SP-4401", "Tech Support", UserRole.TECHNICAL_SUPPORT, "123456", "support@example.com"),
+            ]
+            created_any = False
+            for user_number, name, role, password, email in defaults:
+                if not UserCRUD.get_user_by_user_number(db, user_number):
+                    UserCRUD.create_user(db, user_number, name, role, password, email)
+                    created_any = True
+            if created_any:
+                logger.info("Seeded default users")
+        finally:
+            db.close()
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
@@ -68,10 +85,10 @@ app = FastAPI(
 )
 
 # Add middleware
-# app.state.limiter = limiter
-# app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
-# app.middleware("http")(security_middleware)
-# app.middleware("http")(authentication_middleware)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+app.middleware("http")(security_middleware)
+app.middleware("http")(authentication_middleware)
 
 # CORS Configuration
 app.add_middleware(
@@ -81,6 +98,8 @@ app.add_middleware(
     allow_methods=settings.cors_allow_methods,
     allow_headers=settings.cors_allow_headers,
 )
+
+app.include_router(platform_router)
 
 # ============ Pydantic Models ============
 
@@ -197,7 +216,7 @@ async def health_check(db: Session = Depends(get_db)):
     """Health check endpoint with database connectivity test"""
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db_status = "healthy"
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
